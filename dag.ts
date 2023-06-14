@@ -1,4 +1,3 @@
-import { entries } from "./entries.ts";
 import { createEventEmitter } from "./event_emitter.ts";
 
 const graph = (
@@ -6,7 +5,7 @@ const graph = (
 ) => {
   const dagEventEmitter = createEventEmitter();
 
-  entries(value).forEach(([graphKey, graphArray]) => {
+  Object.entries(value).forEach(([graphKey, graphArray]) => {
     for (const graphValue of graphArray) {
       if (typeof graphValue === "string") {
         break;
