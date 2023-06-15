@@ -1,14 +1,18 @@
 import { entries } from "./entries.ts";
 import { createEventEmitter } from "./event_emitter.ts";
+import { isNumber, isString } from "./typeof.ts";
 
-export function dag<ValueKey extends string, GraphKey extends ValueKey>(
+export function dag<
+  ValueKey extends string | number,
+  GraphKey extends ValueKey,
+>(
   value: Record<ValueKey, Array<Promise<unknown> | ValueKey>>,
 ) {
   const dagEventEmitter = createEventEmitter();
 
   entries(value).forEach(([graphKey, graphArray]) => {
     for (const graphValue of graphArray) {
-      if (typeof graphValue === "string") {
+      if (isNumber(graphValue) || isString(graphValue)) {
         break;
       }
 
@@ -19,7 +23,7 @@ export function dag<ValueKey extends string, GraphKey extends ValueKey>(
   const get = (graphKey: GraphKey) => {
     return Promise.all(
       value[graphKey].map((dependency) => {
-        if (typeof dependency === "string") {
+        if (isString(dependency)) {
           return new Promise((resolve) =>
             dagEventEmitter.on(dependency, resolve)
           );
