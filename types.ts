@@ -1,7 +1,7 @@
-export type Narrow<TType> =
-  | (TType extends infer TValue ? TValue : never)
+export type Narrow<Type> =
+  | (Type extends infer TValue ? TValue : never)
   | Extract<
-    TType,
+    Type,
     number | string | boolean | bigint | symbol | null | undefined | []
   >;
 
