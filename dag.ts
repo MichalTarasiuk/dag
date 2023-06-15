@@ -1,12 +1,9 @@
 import { entries } from "./entries.ts";
 import { createEventEmitter } from "./event_emitter.ts";
-import { isNumber, isString } from "./typeof.ts";
+import { isString } from "./typeof.ts";
 import type { Narrow, Pretty } from "./types.ts";
 
-type UnknownGraphKey = string | number;
-
-const isGraphKey = (value: unknown): value is UnknownGraphKey =>
-  isString(value) || isNumber(value);
+type UnknownGraphKey = string;
 
 type AwaitedArray<
   UnknownArray extends Array<unknown>,
@@ -34,8 +31,8 @@ export function dag<
 
   entries(graph).forEach(([graphKey, graphArray]) => {
     for (const graphValue of graphArray) {
-      if (isGraphKey(graphValue)) {
-        break;
+      if (isString(graphValue)) {
+        continue;
       }
 
       graphValue.then(() => dagEventEmitter.emit(graphKey, graphValue));
@@ -47,7 +44,7 @@ export function dag<
   ) => {
     return Promise.all(
       graph[graphKey].map((dependency) => {
-        if (isGraphKey(dependency)) {
+        if (isString(dependency)) {
           return new Promise((resolve) =>
             dagEventEmitter.on(dependency.toString(), resolve)
           );
