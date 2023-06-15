@@ -5,6 +5,9 @@ import type { Narrow, Pretty } from "./types.ts";
 
 type UnknownGraphKey = string | number;
 
+const isGraphKey = (value: unknown): value is UnknownGraphKey =>
+  isString(value) || isNumber(value);
+
 type AwaitedArray<
   UnknownArray extends Array<unknown>,
 > = Pretty<Array<Awaited<UnknownArray[number]>>>;
@@ -31,7 +34,7 @@ export function dag<
 
   entries(graph).forEach(([graphKey, graphArray]) => {
     for (const graphValue of graphArray) {
-      if (isNumber(graphValue) || isString(graphValue)) {
+      if (isGraphKey(graphValue)) {
         break;
       }
 
@@ -44,9 +47,9 @@ export function dag<
   ) => {
     return Promise.all(
       graph[graphKey].map((dependency) => {
-        if (isString(dependency)) {
+        if (isGraphKey(dependency)) {
           return new Promise((resolve) =>
-            dagEventEmitter.on(dependency, resolve)
+            dagEventEmitter.on(dependency.toString(), resolve)
           );
         }
 
