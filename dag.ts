@@ -1,26 +1,12 @@
 import { entries } from "./entries.ts";
 import { createEventEmitter } from "./event_emitter.ts";
-import { isString } from "./typeof.ts";
-import type { Narrow, Pretty } from "./types.ts";
-
-type UnknownGraphKey = string;
-
-type AwaitedArray<
-  UnknownArray extends Array<unknown>,
-> = Pretty<Array<Awaited<UnknownArray[number]>>>;
-
-type Get<
-  Graph extends Record<
-    UnknownGraphKey,
-    Array<Promise<unknown> | UnknownGraphKey>
-  >,
-  GraphKey extends keyof Graph,
-> = Pretty<AwaitedArray<Graph[GraphKey]>>;
+import { isString } from "./is_string.ts";
+import type { Narrow } from "./types.ts";
 
 export function dag<
   const Graph extends Record<
-    UnknownGraphKey,
-    Array<UnknownGraphKey | Promise<unknown>>
+    string,
+    Array<string | Promise<unknown>>
   >,
 >(
   _graph: Narrow<Graph>,
@@ -35,27 +21,30 @@ export function dag<
         continue;
       }
 
-      graphValue.then(() => dagEventEmitter.emit(graphKey, graphValue));
+      graphValue.then(() => dagEventEmitter.emit(graphKey));
     }
   });
 
-  const get = <GraphKey extends keyof Graph>(
+  const on = async <GraphKey extends keyof Graph>(
     graphKey: GraphKey,
+    callback: () => void,
   ) => {
-    return Promise.all(
+    await Promise.all(
       graph[graphKey].map((dependency) => {
         if (isString(dependency)) {
           return new Promise((resolve) =>
-            dagEventEmitter.on(dependency.toString(), resolve)
+            dagEventEmitter.on(dependency, resolve)
           );
         }
 
         return dependency;
       }),
-    ) as unknown as Promise<Get<Graph, GraphKey>>;
+    );
+
+    callback();
   };
 
   return {
-    get,
+    on,
   };
 }
