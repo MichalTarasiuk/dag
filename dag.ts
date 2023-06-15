@@ -1,11 +1,12 @@
+import { entries } from "./entries.ts";
 import { createEventEmitter } from "./event_emitter.ts";
 
-const graph = (
-  value: Record<string, Array<Promise<unknown> | string>>,
-) => {
+export function dag<ValueKey extends string, GraphKey extends ValueKey>(
+  value: Record<ValueKey, Array<Promise<unknown> | ValueKey>>,
+) {
   const dagEventEmitter = createEventEmitter();
 
-  Object.entries(value).forEach(([graphKey, graphArray]) => {
+  entries(value).forEach(([graphKey, graphArray]) => {
     for (const graphValue of graphArray) {
       if (typeof graphValue === "string") {
         break;
@@ -15,9 +16,9 @@ const graph = (
     }
   });
 
-  const get = (name: string) => {
+  const get = (graphKey: GraphKey) => {
     return Promise.all(
-      value[name].map((dependency) => {
+      value[graphKey].map((dependency) => {
         if (typeof dependency === "string") {
           return new Promise((resolve) =>
             dagEventEmitter.on(dependency, resolve)
@@ -32,6 +33,4 @@ const graph = (
   return {
     get,
   };
-};
-
-export { graph };
+}

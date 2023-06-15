@@ -2,7 +2,7 @@ type Listener = (...parameters: unknown[]) => unknown;
 
 type EventEmitter = Map<string, Array<Listener>>;
 
-export const createEventEmitter = () => {
+export function createEventEmitter() {
   const eventEmitter: EventEmitter = new Map();
 
   const emit = (name: string, ...args: unknown[]) => {
@@ -27,4 +27,4 @@ export const createEventEmitter = () => {
     emit,
     on,
   };
-};
+}
