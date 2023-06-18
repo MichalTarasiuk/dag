@@ -1,47 +1,62 @@
-import { entries } from "./entries.ts";
 import { createEventEmitter } from "./event_emitter.ts";
-import { isString } from "./is_string.ts";
-import type { Narrow } from "./types.ts";
+import { isObject, isString } from "./typeof.ts";
+
+type UnknownGraphKey = string;
+type UnknownPromise = Promise<unknown>;
+
+type UnknownGraph = Record<
+  UnknownGraphKey,
+  UnknownPromise | Record<string, UnknownGraphKey | UnknownPromise>
+>;
 
 export function dag<
-  const Graph extends Record<
-    string,
-    Array<string | Promise<unknown>>
-  >,
+  const Graph extends UnknownGraph,
 >(
-  _graph: Narrow<Graph>,
+  graph: Graph,
 ) {
-  const graph = _graph as Graph;
-
   const dagEventEmitter = createEventEmitter();
 
-  entries(graph).forEach(([graphKey, graphArray]) => {
-    for (const graphValue of graphArray) {
-      if (isString(graphValue)) {
+  Object.entries(graph).forEach(([graphKey, graphValue]) => {
+    if (!isObject(graphValue)) {
+      graphValue.then(() => dagEventEmitter.emit(graphKey));
+
+      return;
+    }
+
+    for (const graphObjectValue of Object.values(graphValue)) {
+      if (isString(graphObjectValue)) {
         continue;
       }
 
-      graphValue.then(() => dagEventEmitter.emit(graphKey));
+      graphObjectValue.then(() => dagEventEmitter.emit(graphKey));
     }
   });
 
   const on = async <GraphKey extends keyof Graph>(
     graphKey: GraphKey,
-    callback: () => void,
+    _listener: () => void,
   ) => {
-    await Promise.all(
-      graph[graphKey].map((dependency) => {
-        if (isString(dependency)) {
-          return new Promise((resolve) =>
-            dagEventEmitter.on(dependency, resolve)
-          );
-        }
+    const graphValue = graph[graphKey];
 
-        return dependency;
-      }),
-    );
+    if (isObject(graphValue)) {
+      const graphObjectValues = Object.values(graphValue);
 
-    callback();
+      await Promise.all(
+        graphObjectValues.map((graphValue) => {
+          if (isString(graphValue)) {
+            return new Promise((resolve) =>
+              dagEventEmitter.on(graphValue, resolve)
+            );
+          }
+
+          return graphValue;
+        }),
+      );
+
+      return;
+    }
+
+    await graphValue;
   };
 
   return {
