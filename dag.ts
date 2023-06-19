@@ -46,9 +46,7 @@ export function dag<
     const graphValue = graph[graphKey];
 
     if (!isObject(graphValue)) {
-      await graphValue;
-
-      return;
+      return await graphValue;
     }
 
     const graphValueEntries = Object.entries(graphValue);
