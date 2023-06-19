@@ -34,6 +34,12 @@ export function dag<
     }
   });
 
+  const resolve = (value: unknown) => {
+    return isString(value)
+      ? new Promise((resolve) => dagEventEmitter.on(value, resolve))
+      : value;
+  };
+
   const get = async <GraphKey extends keyof Graph>(
     graphKey: GraphKey,
   ) => {
@@ -45,24 +51,19 @@ export function dag<
       return;
     }
 
-    const graphObjectEntries = Object.entries(graphValue);
-
-    const resolvedGraphObjectEntries = await Promise.all(
-      graphObjectEntries.map(async ([graphObjectKey, graphObjectValue]) => {
-        if (isString(graphObjectValue)) {
+    const graphValueEntries = Object.entries(graphValue);
+    const resolvedGraphValueEntries = await Promise.all(
+      graphValueEntries.map(
+        async ([graphObjectKey, graphObjectValue]) => {
           return [
             graphObjectKey,
-            await new Promise((resolve) =>
-              dagEventEmitter.on(graphObjectValue, resolve)
-            ),
+            await resolve(graphObjectValue),
           ] as const;
-        }
-
-        return [graphObjectKey, graphObjectValue] as const;
-      }),
+        },
+      ),
     );
 
-    return Object.fromEntries(resolvedGraphObjectEntries);
+    return Object.fromEntries(resolvedGraphValueEntries);
   };
 
   return {
