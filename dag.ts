@@ -18,7 +18,7 @@ export function dag<
 
   Object.entries(graph).forEach(([graphKey, graphValue]) => {
     if (!isObject(graphValue)) {
-      graphValue.then(() => dagEventEmitter.emit(graphKey));
+      graphValue.then(() => dagEventEmitter.emit(graphKey, graphValue));
 
       return;
     }
@@ -28,38 +28,44 @@ export function dag<
         continue;
       }
 
-      graphObjectValue.then(() => dagEventEmitter.emit(graphKey));
+      graphObjectValue.then(() =>
+        dagEventEmitter.emit(graphKey, graphObjectValue)
+      );
     }
   });
 
-  const on = async <GraphKey extends keyof Graph>(
+  const get = async <GraphKey extends keyof Graph>(
     graphKey: GraphKey,
-    _listener: () => void,
   ) => {
     const graphValue = graph[graphKey];
 
-    if (isObject(graphValue)) {
-      const graphObjectValues = Object.values(graphValue);
-
-      await Promise.all(
-        graphObjectValues.map((graphValue) => {
-          if (isString(graphValue)) {
-            return new Promise((resolve) =>
-              dagEventEmitter.on(graphValue, resolve)
-            );
-          }
-
-          return graphValue;
-        }),
-      );
+    if (!isObject(graphValue)) {
+      await graphValue;
 
       return;
     }
 
-    await graphValue;
+    const graphObjectEntries = Object.entries(graphValue);
+
+    const resolvedGraphObjectEntries = await Promise.all(
+      graphObjectEntries.map(async ([graphObjectKey, graphObjectValue]) => {
+        if (isString(graphObjectValue)) {
+          return [
+            graphObjectKey,
+            await new Promise((resolve) =>
+              dagEventEmitter.on(graphObjectValue, resolve)
+            ),
+          ] as const;
+        }
+
+        return [graphObjectKey, graphObjectValue] as const;
+      }),
+    );
+
+    return Object.fromEntries(resolvedGraphObjectEntries);
   };
 
   return {
-    on,
+    get,
   };
 }
