@@ -1,4 +1,4 @@
-const inferType = (operand: unknown, exact = false) => {
+function inferType(operand: unknown, exact = false) {
   const type = typeof operand;
 
   if (type !== "object" && !exact) {
@@ -10,7 +10,7 @@ const inferType = (operand: unknown, exact = false) => {
     .replace(/^\[object (\S+)\]$/, "$1");
 
   return exactType.toLowerCase();
-};
+}
 
 export const isString = (value: unknown): value is string =>
   inferType(value) === "string";
