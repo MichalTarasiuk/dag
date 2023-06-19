@@ -1,5 +1,5 @@
 type UnknownGraphKey = string;
-type UnknownPromise = Promise<unknown>;
+export type UnknownPromise = Promise<unknown>;
 
 export type GraphValue = UnknownGraphKey | UnknownPromise;
 

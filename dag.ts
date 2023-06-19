@@ -1,7 +1,20 @@
 import { emitPromisesResolve } from "./emit_promises_resolve.ts";
 import { createEventEmitter } from "./event_emitter.ts";
 import { isObject, isString } from "./typeof.ts";
-import type { UnknownGraph } from "./types.ts";
+import type { UnknownGraph, UnknownPromise } from "./types.ts";
+
+type Get<
+  Graph extends UnknownGraph,
+  GraphKey extends keyof Graph,
+  GraphValue extends Graph[keyof Graph] = Graph[GraphKey],
+> = GraphValue extends Promise<unknown> ? GraphValue : Promise<
+  {
+    [key in keyof GraphValue]: GraphValue[key] extends UnknownPromise
+      ? Awaited<GraphValue[key]>
+      : key extends keyof Graph ? Awaited<Get<Graph, key>>
+      : never;
+  }
+>;
 
 export function dag<
   const Graph extends UnknownGraph,
@@ -18,7 +31,7 @@ export function dag<
       : value;
   };
 
-  const get = async (
+  const getImpl = async (
     graphKey: keyof Graph,
   ) => {
     const graphValue = graph[graphKey];
@@ -41,6 +54,9 @@ export function dag<
 
     return Object.fromEntries(resolvedGraphValueEntries);
   };
+
+  const get = <GraphKey extends keyof Graph>(graphKey: GraphKey) =>
+    getImpl(graphKey) as Get<Graph, GraphKey>;
 
   return {
     get,
