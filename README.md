@@ -1,6 +1,4 @@
-# dag
-
-in progress...
+# dag - in progress
 
 ```ts
 const graph = dag({

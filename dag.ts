@@ -1,13 +1,7 @@
+import { emitPromisesResolve } from "./emit_promises_resolve.ts";
 import { createEventEmitter } from "./event_emitter.ts";
 import { isObject, isString } from "./typeof.ts";
-
-type UnknownGraphKey = string;
-type UnknownPromise = Promise<unknown>;
-
-type UnknownGraph = Record<
-  UnknownGraphKey,
-  UnknownPromise | Record<string, UnknownGraphKey | UnknownPromise>
->;
+import type { UnknownGraph } from "./types.ts";
 
 export function dag<
   const Graph extends UnknownGraph,
@@ -16,23 +10,7 @@ export function dag<
 ) {
   const dagEventEmitter = createEventEmitter();
 
-  Object.entries(graph).forEach(([graphKey, graphValue]) => {
-    if (!isObject(graphValue)) {
-      graphValue.then(() => dagEventEmitter.emit(graphKey, graphValue));
-
-      return;
-    }
-
-    for (const graphObjectValue of Object.values(graphValue)) {
-      if (isString(graphObjectValue)) {
-        continue;
-      }
-
-      graphObjectValue.then(() =>
-        dagEventEmitter.emit(graphKey, graphObjectValue)
-      );
-    }
-  });
+  emitPromisesResolve(graph, dagEventEmitter);
 
   const resolve = (value: unknown) => {
     return isString(value)
@@ -40,8 +18,8 @@ export function dag<
       : value;
   };
 
-  const get = async <GraphKey extends keyof Graph>(
-    graphKey: GraphKey,
+  const get = async (
+    graphKey: keyof Graph,
   ) => {
     const graphValue = graph[graphKey];
 
