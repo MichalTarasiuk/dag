@@ -17,7 +17,7 @@ type Get<
 >;
 
 export function dag<
-  const Graph extends UnknownGraph,
+  Graph extends UnknownGraph,
 >(
   graph: Graph,
 ) {
