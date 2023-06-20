@@ -1,6 +1,6 @@
-import { createPromiseResolver } from "./create_promise_resolver.ts";
+import { createGraphObjectResolver } from "./create_graph_object_resolver.ts";
 import { isObject } from "./typeof.ts";
-import type { UnknownGraph, UnknownPromise } from "./types.ts";
+import type { Graph as UnknownGraph } from "./types.ts";
 
 type Get<
   Graph extends UnknownGraph,
@@ -8,7 +8,7 @@ type Get<
   GraphValue extends Graph[keyof Graph] = Graph[GraphKey],
 > = GraphValue extends Promise<unknown> ? GraphValue : Promise<
   {
-    [key in keyof GraphValue]: GraphValue[key] extends UnknownPromise
+    [key in keyof GraphValue]: GraphValue[key] extends Promise<unknown>
       ? Awaited<GraphValue[key]>
       : key extends keyof Graph ? Awaited<Get<Graph, key>>
       : never;
@@ -20,7 +20,7 @@ export function dag<
 >(
   graph: Graph,
 ) {
-  const promiseResolver = createPromiseResolver(graph);
+  const resolveGraphObject = createGraphObjectResolver(graph);
 
   const getImpl = async (
     graphKey: keyof Graph,
@@ -35,19 +35,7 @@ export function dag<
       return await graphValue;
     }
 
-    const graphValueEntries = Object.entries(graphValue);
-    const resolvedGraphValueEntries = await Promise.all(
-      graphValueEntries.map(
-        async ([graphObjectKey, graphObjectValue]) => {
-          return [
-            graphObjectKey,
-            await promiseResolver.resolve(graphObjectValue),
-          ] as const;
-        },
-      ),
-    );
-
-    return Object.fromEntries(resolvedGraphValueEntries);
+    return resolveGraphObject(graphValue);
   };
 
   const get = <GraphKey extends keyof Graph>(graphKey: GraphKey) =>
