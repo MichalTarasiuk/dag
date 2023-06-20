@@ -34,6 +34,10 @@ export function dag<
   const getImpl = async (
     graphKey: keyof Graph,
   ) => {
+    if (!Object.hasOwn(graph, graphKey)) {
+      return;
+    }
+
     const graphValue = graph[graphKey];
 
     if (!isObject(graphValue)) {
