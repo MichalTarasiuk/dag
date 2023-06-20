@@ -1,6 +1,5 @@
-import { emitPromisesResolve } from "./emit_promises_resolve.ts";
-import { createEventEmitter } from "./event_emitter.ts";
-import { isObject, isString } from "./typeof.ts";
+import { createPromiseResolver } from "./create_promise_resolver.ts";
+import { isObject } from "./typeof.ts";
 import type { UnknownGraph, UnknownPromise } from "./types.ts";
 
 type Get<
@@ -21,15 +20,7 @@ export function dag<
 >(
   graph: Graph,
 ) {
-  const dagEventEmitter = createEventEmitter();
-
-  emitPromisesResolve(graph, dagEventEmitter);
-
-  const resolve = (value: unknown) => {
-    return isString(value)
-      ? new Promise((resolve) => dagEventEmitter.on(value, resolve))
-      : value;
-  };
+  const promiseResolver = createPromiseResolver(graph);
 
   const getImpl = async (
     graphKey: keyof Graph,
@@ -50,7 +41,7 @@ export function dag<
         async ([graphObjectKey, graphObjectValue]) => {
           return [
             graphObjectKey,
-            await resolve(graphObjectValue),
+            await promiseResolver.resolve(graphObjectValue),
           ] as const;
         },
       ),
