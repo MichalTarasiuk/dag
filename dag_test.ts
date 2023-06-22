@@ -1,10 +1,10 @@
 import { assert } from "https://deno.land/std@0.192.0/_util/asserts.ts";
 import { dag } from "./dag.ts";
 
-Deno.test("dependency graph", async () => {
-  const arrayToObject = <Value extends PropertyKey>(array: Array<Value>) =>
-    Object.fromEntries(array.map((value) => [value, String(value)] as const));
+const isEmptyObject = (value: Record<PropertyKey, unknown>) =>
+  Object.keys(value).length === 0;
 
+Deno.test("dependency graph", async () => {
   const build = { name: "build command", success: true };
 
   const isBuild = (value: unknown): value is typeof build => value === build;
@@ -13,22 +13,22 @@ Deno.test("dependency graph", async () => {
       setTimeout(resolve, 1000, build);
     });
 
-  const dependencyTree: Record<string, Array<string>> = {
-    debugger: [],
-    core: ["lib"],
-    lib: [],
-    react: ["lib", "core"],
-    vue: ["lib", "core"],
-    angular: ["debugger", "core"],
+  const dependencyTree: Record<string, Record<string, string>> = {
+    debugger: {},
+    core: { lib: "lib" },
+    lib: {},
+    react: { lib: "lib", core: "core" },
+    vue: { lib: "lib", core: "core" },
+    angular: { debugger: "debugger", core: "core" },
   };
-  const dependencyNames = Object.keys(dependencyTree);
+  const dependencyTreeKeys = Object.keys(dependencyTree);
   const entriesDependencyTree = Object.entries(dependencyTree);
 
   const entriesGraph = entriesDependencyTree.map(
     ([dependencyName, dependencies]) => {
       return [
         dependencyName,
-        dependencies.length ? arrayToObject(dependencies) : runBuild(),
+        isEmptyObject(dependencies) ? runBuild() : dependencies,
       ] as const;
     },
   );
@@ -36,12 +36,16 @@ Deno.test("dependency graph", async () => {
   const graph = dag(Object.fromEntries(entriesGraph));
 
   const result = await Promise.all(
-    dependencyNames.map(async (dependencyName) => {
+    dependencyTreeKeys.map(async (dependencyName) => {
       const graphItem = await graph.get(dependencyName);
+
+      graphItem;
 
       return (isBuild(graphItem) ? graphItem : await runBuild());
     }),
   );
+
+  console.log(result);
 
   assert(
     result.every(isBuild),
