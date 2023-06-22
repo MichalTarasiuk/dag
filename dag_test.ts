@@ -39,13 +39,9 @@ Deno.test("dependency graph", async () => {
     dependencyTreeKeys.map(async (dependencyName) => {
       const graphItem = await graph.get(dependencyName);
 
-      graphItem;
-
       return (isBuild(graphItem) ? graphItem : await runBuild());
     }),
   );
-
-  console.log(result);
 
   assert(
     result.every(isBuild),
