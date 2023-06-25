@@ -1,30 +1,34 @@
 import { createGraphObjectResolver } from "./create_graph_object_resolver.ts";
 import { isObject } from "./typeof.ts";
-import type { Graph as UnknownGraph } from "./types.ts";
+import type { Graph as UnknownGraph, LooseAutocomplete } from "./types.ts";
 
 type Get<
   Graph extends UnknownGraph,
-  GraphKey extends keyof Graph,
-  GraphValue extends Graph[keyof Graph] = Graph[GraphKey],
+  GraphKey extends LooseAutocomplete<keyof Graph & string>,
+  GraphValue extends Graph[keyof Graph] = Graph[GraphKey & keyof Graph],
 > = GraphValue extends Promise<unknown> ? GraphValue : Promise<
   {
     [key in keyof GraphValue]: GraphValue[key] extends Promise<unknown>
       ? Awaited<GraphValue[key]>
-      : key extends keyof Graph ? Awaited<Get<Graph, key>>
+      : GraphValue[key] extends keyof Graph
+        ? Awaited<Get<Graph, GraphValue[key] & string>>
       : never;
   }
 >;
 
 export function dag<
-  Graph extends UnknownGraph,
+  const Graph extends UnknownGraph,
+  UnknownGraphKey extends keyof Graph & string = keyof Graph & string,
 >(
   graph: Graph,
 ) {
   const resolveGraphObject = createGraphObjectResolver(graph);
 
   const getImpl = async (
-    graphKey: keyof Graph,
+    _graphKey: LooseAutocomplete<UnknownGraphKey>,
   ) => {
+    const graphKey = _graphKey as string;
+
     if (!Object.hasOwn(graph, graphKey)) {
       return;
     }
@@ -38,8 +42,11 @@ export function dag<
     return resolveGraphObject(graphValue);
   };
 
-  const get = <GraphKey extends keyof Graph>(graphKey: GraphKey) =>
-    getImpl(graphKey) as Get<Graph, GraphKey>;
+  const get = <
+    GraphKey extends LooseAutocomplete<UnknownGraphKey>,
+  >(
+    graphKey: GraphKey,
+  ) => getImpl(graphKey) as Get<Graph, GraphKey & string>;
 
   return {
     get,

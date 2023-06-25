@@ -1,10 +1,11 @@
 import { assert } from "https://deno.land/std@0.192.0/_util/asserts.ts";
 import { dag } from "./dag.ts";
-
-const isEmptyObject = (value: Record<PropertyKey, unknown>) =>
-  Object.keys(value).length === 0;
+import { isObject } from "./typeof.ts";
 
 Deno.test("dependency graph", async () => {
+  const isEmptyObject = (value: Record<PropertyKey, unknown>) =>
+    Object.keys(value).length === 0;
+
   const build = { name: "build command", success: true };
 
   const isBuild = (value: unknown): value is typeof build => value === build;
@@ -47,4 +48,55 @@ Deno.test("dependency graph", async () => {
     result.every(isBuild),
     "each result item should be build command result",
   );
+});
+
+Deno.test("Counter", async () => {
+  const sum = (a: unknown, b: unknown) =>
+    typeof a === "number" && typeof b === "number" ? a + b : 0;
+
+  const deepValues = <Obj extends Record<PropertyKey, unknown>>(
+    obj: Obj,
+  ): unknown[] =>
+    Object.values(obj).flatMap((value) =>
+      isObject(value) ? deepValues(value) : value
+    );
+
+  const counterObj = {
+    "1": Promise.resolve(1),
+    "2": {
+      value1: "1",
+      value2: "1",
+    },
+    "3": {
+      value1: "1",
+      value2: "2",
+    },
+    "4": {
+      value1: "2",
+      value2: "2",
+    },
+    "5": {
+      value1: "2",
+      value2: "3",
+    },
+  } as const;
+  const counterObjKeys = Object.keys(counterObj);
+
+  const graph = dag(counterObj);
+
+  const result = await Object.keys(counterObj).reduce(
+    async (collector, graphKey) => {
+      const graphValue = await graph.get(graphKey);
+
+      const nextValue = isObject(graphValue)
+        ? deepValues(graphValue).reduce<number>(sum, 0)
+        : graphValue;
+
+      return await collector + nextValue;
+    },
+    Promise.resolve(0),
+  );
+  const expectedResult = counterObjKeys.map(Number).reduce(sum, 0);
+
+  assert(result === expectedResult);
 });
