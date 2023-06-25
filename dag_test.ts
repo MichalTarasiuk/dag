@@ -3,9 +3,6 @@ import { dag } from "./dag.ts";
 import { isObject } from "./typeof.ts";
 
 Deno.test("dependency graph", async () => {
-  const isEmptyObject = (value: Record<PropertyKey, unknown>) =>
-    Object.keys(value).length === 0;
-
   const build = { name: "build command", success: true };
 
   const isBuild = (value: unknown): value is typeof build => value === build;
@@ -14,27 +11,20 @@ Deno.test("dependency graph", async () => {
       setTimeout(resolve, 1000, build);
     });
 
-  const dependencyTree: Record<string, Record<string, string>> = {
-    debugger: {},
+  const dependencyTree: Record<
+    string,
+    ReturnType<typeof runBuild> | Record<string, string>
+  > = {
+    debugger: runBuild(),
     core: { lib: "lib" },
-    lib: {},
+    lib: runBuild(),
     react: { lib: "lib", core: "core" },
     vue: { lib: "lib", core: "core" },
     angular: { debugger: "debugger", core: "core" },
   };
   const dependencyTreeKeys = Object.keys(dependencyTree);
-  const entriesDependencyTree = Object.entries(dependencyTree);
 
-  const entriesGraph = entriesDependencyTree.map(
-    ([dependencyName, dependencies]) => {
-      return [
-        dependencyName,
-        isEmptyObject(dependencies) ? runBuild() : dependencies,
-      ] as const;
-    },
-  );
-
-  const graph = dag(Object.fromEntries(entriesGraph));
+  const graph = dag(dependencyTree);
 
   const result = await Promise.all(
     dependencyTreeKeys.map(async (dependencyName) => {
