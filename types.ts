@@ -9,7 +9,3 @@ export type Graph = Record<
   GraphKey,
   UnknownPromise | GraphObject
 >;
-
-export type LooseAutocomplete<Value extends string> =
-  | Value
-  | Omit<string, Value>;

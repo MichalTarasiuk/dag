@@ -1,6 +1,10 @@
 import { createGraphObjectResolver } from "./create_graph_object_resolver.ts";
 import { isObject } from "./typeof.ts";
-import type { Graph as UnknownGraph, LooseAutocomplete } from "./types.ts";
+import type { Graph as UnknownGraph } from "./types.ts";
+
+type LooseAutocomplete<Value extends string> =
+  | Value
+  | Omit<string, Value>;
 
 type Get<
   Graph extends UnknownGraph,
