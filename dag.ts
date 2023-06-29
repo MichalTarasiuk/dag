@@ -1,4 +1,5 @@
-import { createGraphObjectResolver } from "./create_graph_object_resolver.ts";
+import { createEventEmitter } from "./event_emitter.ts";
+import { resolveGraphObject } from "./resolve_graph_object.ts";
 import { isObject } from "./typeof.ts";
 import type { Graph as UnknownGraph } from "./types.ts";
 
@@ -26,7 +27,19 @@ export function dag<
 >(
   graph: Graph,
 ) {
-  const resolveGraphObject = createGraphObjectResolver(graph);
+  const eventEmitter = createEventEmitter();
+
+  Object.entries(graph).forEach(([graphKey, graphValue]) => {
+    if (!isObject(graphValue)) {
+      graphValue.then((resolved) => eventEmitter.emit(graphKey, resolved));
+
+      return;
+    }
+
+    resolveGraphObject(graphValue, eventEmitter).then((resolvedGraphObject) =>
+      eventEmitter.emit(graphKey, resolvedGraphObject)
+    );
+  });
 
   const getImpl = async (
     _graphKey: LooseAutocomplete<UnknownGraphKey>,
@@ -43,7 +56,7 @@ export function dag<
       return await graphValue;
     }
 
-    return resolveGraphObject(graphValue);
+    return resolveGraphObject(graphValue, eventEmitter);
   };
 
   const get = <
