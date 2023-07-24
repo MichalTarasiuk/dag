@@ -1,11 +1,10 @@
 type GraphKey = string;
-type UnknownPromise = Promise<unknown>;
 
-export type GraphObjectValue = GraphKey | UnknownPromise;
+export type GraphObjectValue = GraphKey | Promise<unknown>;
 
 export type GraphObject = Record<string, GraphObjectValue>;
 
 export type Graph = Record<
   GraphKey,
-  UnknownPromise | GraphObject
+  Promise<unknown> | GraphObject
 >;
