@@ -1,11 +1,13 @@
-# dag - in progress
+# dag
 
 ```ts
 type Build = typeof build;
 
-const build = { name: "build result", success: true };
+const buildTime = 1_000;
+const build = { name: "build", success: true };
+
 const runBuild = () =>
-  new Promise<Build>((resolve) => setTimeout(resolve, 1000, build));
+  new Promise<Build>((resolve) => setTimeout(resolve, buildTime, build));
 
 const dependencyTree: Record<string, Promise<Build> | Record<string, string>> =
   {
@@ -16,12 +18,11 @@ const dependencyTree: Record<string, Promise<Build> | Record<string, string>> =
     vue: { lib: "lib", core: "core" },
     angular: { debugger: "debugger", core: "core" },
   };
-const dependencyTreeKeys = Object.keys(dependencyTree);
 
 const graph = dag(dependencyTree);
 
 await Promise.all(
-  dependencyTreeKeys.map(async (dependencyName) => {
+  Object.keys(dependencyTree).map(async (dependencyName) => {
     if ((await graph.get(dependencyName)) === build) {
       return;
     }

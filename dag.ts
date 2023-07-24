@@ -17,7 +17,7 @@ type Get<
       ? Awaited<GraphValue[key]>
       : GraphValue[key] extends keyof Graph
         ? Awaited<Get<Graph, GraphValue[key] & string>>
-      : never;
+      : unknown;
   }
 >;
 

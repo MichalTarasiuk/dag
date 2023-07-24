@@ -3,12 +3,14 @@ import { dag } from "./dag.ts";
 
 Deno.test("dependency graph", async () => {
   type Build = typeof build;
+
+  const buildTime = 1_000;
   const build = { name: "build command", success: true };
 
   const isBuild = (value: unknown): value is Build => value === build;
   const runBuild = () =>
     new Promise<Build>((resolve) => {
-      setTimeout(resolve, 1000, build);
+      setTimeout(resolve, buildTime, build);
     });
 
   const dependencyTree: Record<
@@ -22,7 +24,6 @@ Deno.test("dependency graph", async () => {
     vue: { lib: "lib", core: "core" },
     angular: { debugger: "debugger", core: "core" },
   };
-
   const graph = dag(dependencyTree);
 
   assert(
