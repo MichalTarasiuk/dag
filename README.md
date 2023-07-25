@@ -1,4 +1,4 @@
-# dag
+# [dag](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
 
 ```ts
 type Build = typeof build;
